@@ -1,13 +1,3 @@
-"""
-Satellite Orbit Drift Predictor with Bi-GRU
-============================================
-A deep learning model for predicting satellite orbit decay and collision risk
-using synthetic LEO orbital parameter time-series data.
-
-Author: Portfolio Project for Dhruva Space
-Focus: Orbit management and collision avoidance for satellite constellations
-"""
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -25,46 +15,40 @@ from scipy.stats import norm
 import warnings
 warnings.filterwarnings('ignore')
 
-# Set random seeds for reproducibility
+
 np.random.seed(42)
 torch.manual_seed(42)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(42)
 
-# Device configuration
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
-# ============================================================================
-# SECTION 1: CONSTANTS AND CONFIGURATION
-# ============================================================================
 
-# Orbital mechanics constants
-EARTH_RADIUS_KM = 6371.0  # Earth's mean radius in km
-MU_EARTH = 398600.4418    # Earth's gravitational parameter (km^3/s^2)
-J2 = 1.08263e-3           # Earth's J2 perturbation coefficient
+EARTH_RADIUS_KM = 6371.0  
+MU_EARTH = 398600.4418    
+J2 = 1.08263e-3          
 
-# Data generation parameters
+
 NUM_SEQUENCES = 2000
-INPUT_TIMESTEPS = 100      # Past observations
-PREDICTION_HORIZON = 50    # Future timesteps to predict
+INPUT_TIMESTEPS = 100      
+PREDICTION_HORIZON = 50   
 TOTAL_TIMESTEPS = INPUT_TIMESTEPS + PREDICTION_HORIZON
-NUM_FEATURES = 6           # 6 Keplerian elements
+NUM_FEATURES = 6          
 
-# Initial LEO orbit parameters (circular orbit at ~500 km altitude)
-INITIAL_SEMI_MAJOR_AXIS = EARTH_RADIUS_KM + 500  # km
-INITIAL_ECCENTRICITY = 0.001                      # Nearly circular
-INITIAL_INCLINATION = np.radians(51.6)            # ISS-like inclination (radians)
-INITIAL_RAAN = np.radians(0.0)                    # Right Ascension of Ascending Node
-INITIAL_ARG_PERIGEE = np.radians(0.0)             # Argument of perigee
-INITIAL_MEAN_ANOMALY = np.radians(0.0)            # Mean anomaly
+INITIAL_SEMI_MAJOR_AXIS = EARTH_RADIUS_KM + 500 
+INITIAL_ECCENTRICITY = 0.001                     
+INITIAL_INCLINATION = np.radians(51.6)            
+INITIAL_RAAN = np.radians(0.0)                    
+INITIAL_ARG_PERIGEE = np.radians(0.0)             
+INITIAL_MEAN_ANOMALY = np.radians(0.0)            
 
-# Collision risk thresholds
-DANGER_ZONE_A = EARTH_RADIUS_KM + 450  # Semi-major axis danger threshold
-HIGH_RISK_A_THRESHOLD = EARTH_RADIUS_KM + 480  # Below this in prediction = high risk
-DANGER_ZONE_E = 0.01  # Eccentricity threshold for danger zone
 
-# Training parameters
+DANGER_ZONE_A = EARTH_RADIUS_KM + 450 
+HIGH_RISK_A_THRESHOLD = EARTH_RADIUS_KM + 480  
+DANGER_ZONE_E = 0.01  
+
 TRAIN_SIZE = 1400
 VAL_SIZE = 300
 TEST_SIZE = 300
@@ -74,9 +58,6 @@ NUM_LAYERS = 2
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 50
 
-# ============================================================================
-# SECTION 2: SYNTHETIC ORBITAL DATA GENERATION
-# ============================================================================
 
 def compute_orbital_period(semi_major_axis):
     """
